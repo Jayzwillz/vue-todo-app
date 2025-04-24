@@ -1,14 +1,20 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useTodoStore } from '../stores/todoStore';
 import { useRouter } from 'vue-router';
 
-// const { totalPages } = todoStore; // Add this line
+interface Todo {
+  id: number;
+  title: string;
+  completed: boolean;
+}
+
 const todoStore = useTodoStore();
 const router = useRouter();
-const searchQuery = ref('');
-const filterStatus = ref('all');
-const newTodo = ref('');
+
+const searchQuery = ref<string>('');
+const filterStatus = ref<'all' | 'completed' | 'pending'>('all');
+const newTodo = ref<string>('');
 
 // Fetch todos on mount
 onMounted(() => {
@@ -16,61 +22,62 @@ onMounted(() => {
 });
 
 // Computed: Filtered Todos
-const filteredTodos = computed(() => {
+const filteredTodos = computed<Todo[]>(() => {
   return todoStore.todos
-    .filter(todo => {
+    .filter((todo: Todo) => {
       if (filterStatus.value === 'completed') return todo.completed;
       if (filterStatus.value === 'pending') return !todo.completed;
       return true;
     })
-    .filter(todo => todo.title.toLowerCase().includes(searchQuery.value.toLowerCase()));
+    .filter((todo: Todo) => todo.title.toLowerCase().includes(searchQuery.value.toLowerCase()));
 });
 
-// Computed: Paginated Todos (Now Uses `filteredTodos`)
-const paginatedTodos = computed(() => {
+// Computed: Paginated Todos
+const paginatedTodos = computed<Todo[]>(() => {
   const start = (todoStore.currentPage - 1) * todoStore.todosPerPage;
   return filteredTodos.value.slice(start, start + todoStore.todosPerPage);
 });
 
 // Watch for Filter/Search Changes & Reset Pagination
 watch([searchQuery, filterStatus], () => {
-  todoStore.setPage(1); // Reset to first page on filter/search change
+  todoStore.setPage(1);
 });
 
 // Add New Todo
-const addTodo = () => {
+const addTodo = (): void => {
   if (!newTodo.value.trim()) return;
-  const newTask = {
+  const newTask: Todo = {
     id: Date.now(),
     title: newTodo.value.trim(),
-    completed: false
+    completed: false,
   };
   todoStore.addTodo(newTask);
   newTodo.value = '';
 };
 
 // Toggle Todo Completion
-const toggleCompletion = (todo) => {
+const toggleCompletion = (todo: Todo): void => {
   todoStore.updateTodo({ ...todo, completed: !todo.completed });
 };
 
 // Delete Todo
-const deleteTodo = (todoId) => {
+const deleteTodo = (todoId: number): void => {
   todoStore.deleteTodo(todoId);
 };
 
 // Change Page
-const changePage = (page) => {
+const changePage = (page: number): void => {
   if (page >= 1 && page <= todoStore.totalPages) {
     todoStore.setPage(page);
   }
 };
 
-const visiblePages = computed(() => {
+// Pagination - visible pages
+const visiblePages = computed<number[]>(() => {
   const total = todoStore.totalPages;
   const current = todoStore.currentPage;
-  const maxVisible = 5; // Show only 5 pages at a time
-  const pages = [];
+  const maxVisible = 5;
+  const pages: number[] = [];
 
   let start = Math.max(1, current - Math.floor(maxVisible / 2));
   let end = Math.min(total, start + maxVisible - 1);
@@ -85,8 +92,8 @@ const visiblePages = computed(() => {
 
   return pages;
 });
-
 </script>
+
 
 <template>
   <div class="max-w-3xl mx-auto mt-4 p-6 bg-gray-900 text-gray-300 rounded-lg shadow-md todo-container">

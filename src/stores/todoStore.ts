@@ -1,43 +1,54 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 
+// Define a Todo type
+export interface Todo {
+  userId?: number;
+  id: number;
+  title: string;
+  completed: boolean;
+  datetime?: string
+}
+
 export const useTodoStore = defineStore('todoStore', () => {
-  const todos = ref([]);
-  const currentPage = ref(1);
+  const todos = ref<Todo[]>([]);
+  const currentPage = ref<number>(1);
   const todosPerPage = 10;
 
   // Fetch todos (Load from localStorage or API)
-  const fetchTodos = async () => {
-    const savedTodos = JSON.parse(localStorage.getItem('todos'));
+  const fetchTodos = async (): Promise<void> => {
+    const saved = localStorage.getItem('todos');
+    const savedTodos: Todo[] | null = saved ? JSON.parse(saved) : null;
+
     if (savedTodos && savedTodos.length > 0) {
-      todos.value = savedTodos; // Load saved todos
+      todos.value = savedTodos;
     } else {
       const response = await fetch('https://jsonplaceholder.typicode.com/todos');
-      const data = await response.json();
+      const data: Todo[] = await response.json();
       todos.value = data.slice(0, 200);
-      saveTodos(); // Save fetched todos
+      saveTodos();
     }
   };
 
   // Save todos to localStorage
-  const saveTodos = () => {
+  const saveTodos = (): void => {
     localStorage.setItem('todos', JSON.stringify(todos.value));
   };
 
   // Add Todo
-  const addTodo = (newTodo) => {
-    todos.value.unshift(newTodo); // Add at the top
+  const addTodo = (newTodo: Todo): void => {
+    todos.value.unshift(newTodo);
     saveTodos();
   };
 
   // Delete Todo
-  const deleteTodo = (id) => {
+  const deleteTodo = (id: number): void => {
     todos.value = todos.value.filter(todo => todo.id !== id);
     saveTodos();
   };
 
   // Update Todo Completion
-  const updateTodo = (updatedTodo) => {
+  const updateTodo = (updatedTodo: Todo): void => {
     const index = todos.value.findIndex(todo => todo.id === updatedTodo.id);
     if (index !== -1) {
       todos.value[index] = updatedTodo;
@@ -48,15 +59,15 @@ export const useTodoStore = defineStore('todoStore', () => {
   // Pagination Computations
   const totalPages = computed(() => Math.ceil(todos.value.length / todosPerPage));
 
-  const setPage = (page) => {
+  const setPage = (page: number): void => {
     currentPage.value = page;
   };
 
   // Watch for changes and save automatically
   watch(todos, saveTodos, { deep: true });
 
-  return { 
-    todos, fetchTodos, addTodo, deleteTodo, updateTodo, 
-    currentPage, todosPerPage, totalPages, setPage 
+  return {
+    todos, fetchTodos, addTodo, deleteTodo, updateTodo,
+    currentPage, todosPerPage, totalPages, setPage
   };
 });
